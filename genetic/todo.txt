@@ -1,0 +1,32 @@
+• Documented code (Python, C++, C, Java, Matlab)
+– Make sure that each group member codes something, add
+names to code (who did what?)
+– Upload plain files to Student portal or zip archive
+• Final demonstration of evolved behaviour in class
+in three weeks (Carnival in between!!!)
+• Intermediate demonstration EA on benchmark
+functions (same demos as for PSO, show updates
+of individuals) in two weeks (= after Carnival)
+• Short research paper with abstract, methods
+(describe your EA & control), experiments, results,
+and discussion.
+
+
+
+
+Report:
+• Control (e.g. drawing of ANN)
+• Morphology (here simulation)
+• Genetic representation -> exact genome
+• Population size -> exact number
+• Initialization (how do you initialize genomes?) -> exact distributions and
+motivation
+• Exact fitness function + motivation
+• Evaluation procedure + motivation
+(experiments, how do you measure?)
+• Selection and reproduction (be precise)
+• Crossover & mutation (be precise)
+• Stop criterion
+• Data analysis (figures! describe results, explain, and discuss! Analyse
+possible causes for your results. This section might take more than a page
+of text)
