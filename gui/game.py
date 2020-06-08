@@ -59,7 +59,8 @@ class MobileRobotGame:
         if self.scenario == "evolutionary":
             self.dust_sprite = DustGridSprite(self.robot, self.world.dustgrid)
         elif self.scenario == "localization":
-            self.localization_path = LocalizationPath(self)
+            self.localization_path = LocalizationPath(self, "green")
+            self.dead_reckoning_path = LocalizationPath(self, "orange")
 
     def run(self, snapshot=False, snapshot_dir=""):
         # Main game loop
@@ -109,6 +110,7 @@ class MobileRobotGame:
             self.particle_filter.update(robo_diff, robo_pos, self.robot.sensor_data)
             particle_pos = self.particle_filter.get_particle_pos()
             self.localization_path.update_loc(particle_pos)
+            self.dead_reckoning_path.update_loc((self.robot.ideal_x, self.robot.ideal_y))
 
     def draw(self):
         if self.scenario == "evolutionary":
@@ -134,8 +136,7 @@ class MobileRobotGame:
             rotated_x = self.robot.x + math.cos(orientation) * (self.robot.radius - 1)
             rotated_y = self.robot.y + math.sin(orientation) * (self.robot.radius - 1)
             pygame.gfxdraw.line(self.screen, *ti((self.robot.x, self.robot.y)), *ti((rotated_x, rotated_y)),
-                    pygame.Color('orange'))
-
+                    pygame.Color('darkgreen'))
 
         # Draw walls
         for wall in self.world.walls:
@@ -152,6 +153,7 @@ class MobileRobotGame:
             self.debug_display.draw(self.screen)
             
         self.localization_path.draw(self.screen)
+        self.dead_reckoning_path.draw(self.screen)
 
     def __draw_robot__(self):
         if self.scenario == "evolutionary":

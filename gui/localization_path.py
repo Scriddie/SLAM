@@ -35,13 +35,13 @@ def draw_dashed_curve(surf, color, start, end, fraction, dash_length=10):
     return new_fraction % 2
 
 class LocalizationPath:
-    def __init__(self, game):
+    def __init__(self, game, color="orange"):
         self.game = game
         self.robot = game.robot
         self.localizer = self.robot.localizer
         
         self.path_surface = pygame.Surface((game.screen_width, game.screen_height), pygame.SRCALPHA)
-        self.path_color = pygame.Color('orange')
+        self.path_color = pygame.Color(color)
         self.old_pos = (self.localizer.state_mu[0], self.localizer.state_mu[1])
         self.passed_time = 0
         self.dash_fraction = 0

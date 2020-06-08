@@ -38,7 +38,7 @@ class Particle:
         if not ((dx == 0) and (dy == 0) and (dangle == 0)):
             self.pos[0] += dx + random.gauss(0, self.sigma)
             self.pos[1] += dy + random.gauss(0, self.sigma)
-            self.pos[2] += dangle + random.gauss(0, 0.05*self.sigma)
+            self.pos[2] += dangle + random.gauss(0, 0.1*self.sigma)
 
     def closest_point(self, point):
         point = np.array(list(point))

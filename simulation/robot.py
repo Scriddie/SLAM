@@ -38,6 +38,19 @@ def triangulate(x1, y1, r1, x2, y2, r2, x3, y3, r3):
 
     return x, y
 
+def rotate(origin, point, angle):
+    """
+    Rotate a point counterclockwise by a given angle around a given origin.
+
+    The angle should be given in radians.
+    """
+    ox, oy = origin
+    px, py = point
+
+    qx = ox + math.cos(angle) * (px - ox) - math.sin(angle) * (py - oy)
+    qy = oy + math.sin(angle) * (px - ox) + math.cos(angle) * (py - oy)
+    return qx, qy
+
 
 class Robot:
     # sensor length should be 35
@@ -45,6 +58,9 @@ class Robot:
                  max_v=100, v_step=10, n_sensors=12, max_sensor_length=80, omni_sensor_range=150):
         self.x = start_x
         self.y = start_y
+        self.ideal_x = start_x
+        self.ideal_y = start_y
+        self.ideal_angle = start_angle
         self.scenario = scenario
         self.collision = collision
         self.radius = radius
@@ -155,8 +171,10 @@ class Robot:
 
         # Used in the vel_drive scenario
         # self.angle_change += direction * self.angle_step
-        self.angle += direction * self.angle_step
-        self.angle_update += direction * self.angle_step
+        angle_update = direction * self.angle_step +  + random.gauss(0, 0.02)
+        self.angle += angle_update
+        self.angle_update += angle_update
+        self.ideal_angle += angle_update
 
     def calculate_icc(self):
         """Returns the radius and the (x,y) coordinates of the center of rotation"""
@@ -235,11 +253,24 @@ class Robot:
         y_tmp = self.y
 
         if self.collision:
-            self.check_collision(r_x, r_y, r_angle)
-        else:
-            self.x = r_x
-            self.y = r_y
-            self.angle = r_angle
+            r_x, r_y, r_angle = self.check_collision(r_x, r_y, r_angle)
+        
+        # keep track of ideal position
+        self.ideal_angle += self.angle - r_angle
+        dx = self.x - r_x
+        dy = self.y - r_y
+        dx, dy = rotate((0, 0), (dx, dy), self.ideal_angle-self.angle)
+        self.ideal_x -= dx
+        self.ideal_y -= dy
+
+        # add some random noise
+        if not((self.x==r_x) and (self.y==r_y) and (self.angle==r_angle)):
+            self.x = r_x + random.gauss(0, 0.01)
+            self.y = r_y + random.gauss(0, 0.01)
+            self.angle = r_angle + random.gauss(0, 0.02)
+
+        # compare deviation from dead reckoning 
+        # print(self.x, self.ideal_x)
 
         if self.motion_model == "diff_drive":
             self.collect_sensor_data()
@@ -265,14 +296,6 @@ class Robot:
         robo_diff =  (self.x - old_x, self.y - old_y, self.angle - old_angle + self.angle_update)
         self.angle_update = 0
 
-        # add some random noise
-        if not((robo_diff[0]==0) and (robo_diff[0]==0) and (robo_diff[0]==0)):
-            self.x += random.gauss(0, 0.01)
-            self.y += random.gauss(0, 0.01)
-            self.angle += random.gauss(0, 0.02)
-        
-        # self.v = 0
-
         return robo_diff
 
     def check_collision(self, r_x, r_y, r_angle):
@@ -281,17 +304,21 @@ class Robot:
         @param r_y: aspired y position after time step
         @param r_angle: aspired angle after time step
         """
+        x = self.x
+        y = self.y
+        angle = self.angle
         collision = self.world.slide_collision((self.x, self.y), (r_x, r_y), self.radius)
         if collision is None:
             # No collision
-            self.x = r_x
-            self.y = r_y
+            x = r_x
+            y = r_y
         else:
             # Slide
-            self.x = collision.x
-            self.y = collision.y
+            x = collision.x
+            y = collision.y
 
-        self.angle = r_angle
+        angle = r_angle
+        return x, y, angle
 
     def scan_for_beacons(self):
         beacons_in_range = self.world.get_beacons(self.x, self.y, self.omni_sensor_range)
