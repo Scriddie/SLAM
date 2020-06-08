@@ -1,6 +1,8 @@
 ars_env/
 .vscode/
 __pycache__/
+*.mp4
+*.pdf
 
 checkpoints/
 _checkpoints/
