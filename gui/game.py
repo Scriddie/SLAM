@@ -102,9 +102,13 @@ class MobileRobotGame:
         if self.scenario == "localization":  # Not to break the evolutionary part
             pygame.draw.line(self.surface, self.robo_lines_color, self.robo_line_buffer, (self.robot.x, self.robot.y))
             self.robo_line_buffer = (self.robot.x, self.robot.y)
-            self.localization_path.update(delta_time)
+            # self.localization_path.update(delta_time)
+
+            # particle filter
             robo_pos = (self.robot.x, self.robot.y, self.robot.angle)
             self.particle_filter.update(robo_diff, robo_pos, self.robot.sensor_data)
+            particle_pos = self.particle_filter.get_particle_pos()
+            self.localization_path.update_loc(particle_pos)
 
     def draw(self):
         if self.scenario == "evolutionary":
@@ -147,7 +151,7 @@ class MobileRobotGame:
         if self.debug:
             self.debug_display.draw(self.screen)
             
-        # self.localization_path.draw(self.screen)
+        self.localization_path.draw(self.screen)
 
     def __draw_robot__(self):
         if self.scenario == "evolutionary":

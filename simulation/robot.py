@@ -42,7 +42,7 @@ def triangulate(x1, y1, r1, x2, y2, r2, x3, y3, r3):
 class Robot:
     # sensor length should be 35
     def __init__(self, start_x, start_y, start_angle, scenario, collision, radius=20,
-                 max_v=100, v_step=10, n_sensors=12, max_sensor_length=100, omni_sensor_range=150):
+                 max_v=100, v_step=10, n_sensors=12, max_sensor_length=80, omni_sensor_range=150):
         self.x = start_x
         self.y = start_y
         self.scenario = scenario

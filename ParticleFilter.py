@@ -5,6 +5,7 @@ from scipy.stats import norm
 from bresenham import bresenham
 import threading
 import math
+import concurrent
 
 
 def rotate(origin, point, angle):
@@ -32,12 +33,12 @@ class Particle:
         dx, dy, dangle = pos_delta
         # TODO somehow dangle doesn't work at all!
         # print(dx, dy, dangle)
-        sigma = 0.1
+        sigma = 1
         # sample from around predicted location
         if not ((dx == 0) and (dy == 0) and (dangle == 0)):
             self.pos[0] += dx + random.gauss(0, sigma)
             self.pos[1] += dy + random.gauss(0, sigma)
-            self.pos[2] += dangle + random.gauss(0, sigma)
+            self.pos[2] += dangle + random.gauss(0, 0.1*sigma)
 
     def closest_point(self, point):
         point = np.array(list(point))
@@ -58,7 +59,8 @@ class Particle:
             q = q * pnorm(min_dist)
         return q
 
-    def update_map(self, robo_pos, sensor_data):
+    def update_map(self, robo_pos, sensor_data, remove_objects=True):
+        """ update occupancy grid, add sensor noise """
         no_contact_list = []
         for hit, dist in sensor_data:
             if hit is None:
@@ -76,14 +78,14 @@ class Particle:
                 y = int(np.round(y))
                 self.world.grid[(x, y)] = 1
 
-                # TODO
-                robo_x = int(np.round(robo_pos[0]))
-                robo_y = int(np.round(robo_pos[1]))
-                no_contact_list += list(bresenham(robo_x, robo_y, x, y))[1:-1]
-
-        for k in self.world.grid.keys():
-            if k in no_contact_list:
-                self.world.grid[k] = 0
+                if remove_objects:
+                    robo_x = int(np.round(robo_pos[0]))
+                    robo_y = int(np.round(robo_pos[1]))
+                    no_contact_list += list(bresenham(robo_x, robo_y, x, y))[1:-1]
+        if remove_objects:
+            for k in self.world.grid.keys():
+                if k in no_contact_list:
+                    self.world.grid[k] = 0
 
 
 class ParticleFilter:
@@ -100,22 +102,41 @@ class ParticleFilter:
         self.best_particle = self.particle_list[0]
     
     def update(self, pos_delta, robo_pos, sensor_data):
-        field = np.zeros((self.n_part), dtype=float)
-        for idx, i in enumerate(self.particle_list):
-            i.update_position(pos_delta)
-            i.update_map(robo_pos, sensor_data)
-            field[idx] = i.likelihood_field(sensor_data)
-        
-        # resample only when stuff happens & only 2 in 100 rounds to preserve connections
         dx, dy, dangle = pos_delta
         if not ((dx == 0) and (dy == 0) and (dangle == 0)):
+            field = np.zeros((self.n_part), dtype=float)
+            threads = []
+            for idx, i in enumerate(self.particle_list):
+            #     threads.append(threading.Thread(target=i.update_position, args=(pos_delta,)))
+            # for t in threads:
+            #     t.start()
+            # for t in threads:
+            #     t.join()
+                i.update_position(pos_delta)
+            
+            threads = []
+            for idx, i in enumerate(self.particle_list):
+            #     threads.append(threading.Thread(target=i.update_map, args=(robo_pos, sensor_data,)))
+            # for t in threads:
+            #     t.start()
+            # for t in threads:
+            #     t.join()
+                i.update_map(robo_pos, sensor_data)
+
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                for idx, i in enumerate(self.particle_list):
+                    future = executor.submit(i.likelihood_field, sensor_data)
+                    field[idx] = future.result()
+                # field[idx] = i.likelihood_field(sensor_data)
+            
+            # resample only when stuff happens & only 2 in 100 rounds to preserve connections
             if np.random.uniform() > self.resample_ratio:
                 self.resample()
 
-        self.weights = field / np.sum(field)
-        
-        # remember our best particle
-        self.best_particle = self.particle_list[np.argmax(self.weights)]
+            self.weights = field / np.sum(field)
+            
+            # remember our best particle
+            self.best_particle = self.particle_list[np.argmax(self.weights)]
 
     def resample(self):
         # which ones have we resampled already
@@ -132,16 +153,17 @@ class ParticleFilter:
         self.particle_list = new_particle_list
         self.weights = np.ones((self.n_part), dtype=float) / self.n_part
 
+    def get_particle_pos(self):
+        return (self.best_particle.pos[0], self.best_particle.pos[1])
+
     def draw_robos(self):
-        # a = self.particle_list[0]
-        # a = self.best_particle
         return [(int(a.pos[0]), int(a.pos[1])) for a in self.particle_list]
 
     def draw_orientation(self):
         return self.best_particle.pos[2]
 
     def draw_blobs(self):
-        """  """
+        """ draw occupied grid cells """
         all_blobs = []
         # for i in self.particle_list:
         i = self.best_particle

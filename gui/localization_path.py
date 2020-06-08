@@ -56,10 +56,15 @@ class LocalizationPath:
         if self.passed_time > 2:
             self.__draw_uncertainty_ellipse__(self.path_surface)
             self.passed_time = 0
+
+    def update_loc(self, new_pos):
+        # for particle filter
+        self.dash_fraction = draw_dashed_curve(surf=self.path_surface, color=self.path_color, start=self.old_pos, end=new_pos, fraction=self.dash_fraction)
+        self.old_pos = new_pos
     
     def draw(self, surface):
         surface.blit(self.path_surface, (0,0), (0,0, self.game.screen_width, self.game.screen_height))
-        self.__draw_uncertainty_ellipse__(surface)
+        # self.__draw_uncertainty_ellipse__(surface)
         
     def __draw_uncertainty_ellipse__(self, surface):
         x_mu = self.localizer.state_mu[0]
