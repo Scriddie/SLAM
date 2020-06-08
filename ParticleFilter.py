@@ -27,18 +27,18 @@ class Particle:
         self.pos = pos
         # world should be all zeros initially
         self.world = world
+        self.sigma = 1
 
     def update_position(self, pos_delta):
         """ update position """
         dx, dy, dangle = pos_delta
         # TODO somehow dangle doesn't work at all!
         # print(dx, dy, dangle)
-        sigma = 1
         # sample from around predicted location
         if not ((dx == 0) and (dy == 0) and (dangle == 0)):
-            self.pos[0] += dx + random.gauss(0, sigma)
-            self.pos[1] += dy + random.gauss(0, sigma)
-            self.pos[2] += dangle + random.gauss(0, 0.1*sigma)
+            self.pos[0] += dx + random.gauss(0, self.sigma)
+            self.pos[1] += dy + random.gauss(0, self.sigma)
+            self.pos[2] += dangle + random.gauss(0, 0.05*self.sigma)
 
     def closest_point(self, point):
         point = np.array(list(point))
@@ -91,7 +91,7 @@ class Particle:
 class ParticleFilter:
     def __init__(self, bot_pos, world, n_part=30):
         # draw a bunch of particles
-        self.resample_ratio = 0.9
+        self.resample_ratio = 0.85
         self.n_part = n_part
         self.weights = np.ones((n_part), dtype=float) / n_part
         p = Particle(bot_pos, deepcopy(world))
@@ -105,36 +105,38 @@ class ParticleFilter:
         dx, dy, dangle = pos_delta
         if not ((dx == 0) and (dy == 0) and (dangle == 0)):
             field = np.zeros((self.n_part), dtype=float)
-            threads = []
-            for idx, i in enumerate(self.particle_list):
-            #     threads.append(threading.Thread(target=i.update_position, args=(pos_delta,)))
-            # for t in threads:
-            #     t.start()
-            # for t in threads:
-            #     t.join()
-                i.update_position(pos_delta)
-            
-            threads = []
-            for idx, i in enumerate(self.particle_list):
-            #     threads.append(threading.Thread(target=i.update_map, args=(robo_pos, sensor_data,)))
-            # for t in threads:
-            #     t.start()
-            # for t in threads:
-            #     t.join()
-                i.update_map(robo_pos, sensor_data)
 
-            with concurrent.futures.ThreadPoolExecutor() as executor:
-                for idx, i in enumerate(self.particle_list):
-                    future = executor.submit(i.likelihood_field, sensor_data)
-                    field[idx] = future.result()
-                # field[idx] = i.likelihood_field(sensor_data)
+            for idx, i in enumerate(self.particle_list):
+                i.update_position(pos_delta)
+                i.update_map(robo_pos, sensor_data)
+                field[idx] = i.likelihood_field(sensor_data)
+            
+            # threads = []
+            # with concurrent.futures.ThreadPoolExecutor() as executor:
+            #     for idx, i in enumerate(self.particle_list):
+            #         threads.append(executor.submit(i.update_position, pos_delta))
+            #     _ = [f.result() for f in threads]
+            
+            # threads = []
+            # with concurrent.futures.ThreadPoolExecutor() as executor:
+            #     for idx, i in enumerate(self.particle_list):
+            #         threads.append(executor.submit(i.update_map, robo_pos, sensor_data))
+            #     _ = [f.result() for f in threads]
+
+            # threads = []
+            # with concurrent.futures.ThreadPoolExecutor() as executor:
+            #     for idx, i in enumerate(self.particle_list):
+            #         threads.append(executor.submit(i.likelihood_field, sensor_data))
+            #     for i in range(len(field)):
+            #         field[i] = threads[i].result()
             
             # resample only when stuff happens & only 2 in 100 rounds to preserve connections
+            self.weights = field / np.sum(field)
+            # print(self.weights)
+            
             if np.random.uniform() > self.resample_ratio:
                 self.resample()
 
-            self.weights = field / np.sum(field)
-            
             # remember our best particle
             self.best_particle = self.particle_list[np.argmax(self.weights)]
 
@@ -165,13 +167,7 @@ class ParticleFilter:
     def draw_blobs(self):
         """ draw occupied grid cells """
         all_blobs = []
-        # for i in self.particle_list:
         i = self.best_particle
         all_blobs += [i for i, v in i.world.grid.items() if v==1]
         return all_blobs
 
-    # one more def??
-
-
-
-    
