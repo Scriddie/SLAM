@@ -1,8 +1,10 @@
 ars_env/
 .vscode/
 __pycache__/
-*.mp4
+Presentation*
 *.pdf
+*.zip
+submission_note.txt
 
 checkpoints/
 _checkpoints/
