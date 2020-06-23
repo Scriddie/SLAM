@@ -1,3 +1,3 @@
-Simultaneous Localazation and Mapping using a particle filter.
+Simultaneous Localization and Mapping using a particle filter.
 
 ![](ParticleFilterSLAM.mp4)
